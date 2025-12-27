@@ -1,18 +1,13 @@
-# TemplateDockerDev
+# Template Docker Dev
+This is a template repository for developing Elixir/Phoenix applications using Docker. It provides a ready-to-use Docker development environment with essential tools and configurations.
+## Development Environment
+```bash
+  docker compose up --build
+```
+This command builds and starts the development environment using Docker Compose. It sets up the necessary services, including the Elixir/Phoenix application and a PostgreSQL database.
 
-To start your Phoenix server:
+## Configuration
+- config/dev.exs
+As you can see, the database points to "db" which is the name of the database service in docker-compose.yml.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Feel free to customize the configuration according to the needs of your project.
