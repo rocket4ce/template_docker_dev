@@ -1,10 +1,10 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16-alpine # Use desired Postgres version
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: you_data_base
+      POSTGRES_USER: postgres # Default user
+      POSTGRES_PASSWORD: postgres # Default password
+      POSTGRES_DB: you_data_base # Change as needed
     ports:
       - "5432:5432"
     volumes:
@@ -23,7 +23,7 @@ services:
         - BUILDKIT_INLINE_CACHE=1
     environment:
       MIX_ENV: dev
-      DATABASE_URL: ecto://postgres:postgres@db/you_data_base
+      DATABASE_URL: ecto://postgres:postgres@db/you_data_base # Change as needed
       PHX_HOST: ${PHX_HOST:-localhost}
       PHX_PORT: ${PHX_PORT:-4000}
     ports:
