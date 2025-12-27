@@ -4,7 +4,7 @@ import Config
 config :template_docker_dev, TemplateDockerDev.Repo,
   username: "postgres",
   password: "postgres",
-  hostname: "localhost",
+  hostname: "db",
   database: "template_docker_dev_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,

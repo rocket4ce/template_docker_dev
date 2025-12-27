@@ -1,0 +1,99 @@
+# Find eligible builder and runner images on Docker Hub. We use Ubuntu/Debian
+# instead of Alpine to avoid DNS resolution issues in production.
+#
+# https://hub.docker.com/r/hexpm/elixir/tags?name=ubuntu
+# https://hub.docker.com/_/ubuntu/tags
+#
+# This file is based on these images:
+#
+#   - https://hub.docker.com/r/hexpm/elixir/tags - for the build image
+#   - https://hub.docker.com/_/debian/tags?name=trixie-20251208-slim - for the release image
+#   - https://pkgs.org/ - resource for finding needed packages
+#   - Ex: docker.io/hexpm/elixir:1.19.4-erlang-28.3-debian-trixie-20251208-slim
+#
+ARG ELIXIR_VERSION=1.19.4
+ARG OTP_VERSION=28.3
+ARG DEBIAN_VERSION=trixie-20251208-slim
+
+ARG BUILDER_IMAGE="docker.io/hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
+
+FROM ${BUILDER_IMAGE} AS builder
+
+# Install build dependencies including tools needed for development
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    inotify-tools \
+    postgresql-client \
+    openssl \
+    libncurses6 \
+    locales \
+    ca-certificates \
+    curl \
+    wget \
+    vim \
+    nano \
+  && rm -rf /var/lib/apt/lists/*
+# Set the locale
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+  && locale-gen
+
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# Install Node.js for asset compilation
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs \
+  && npm install -g npm@latest \
+  && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install hex and rebar
+RUN mix local.hex --force \
+  && mix local.rebar --force
+
+# Clean any previous hex cache to avoid issues
+RUN mix hex.info || true
+
+# Set development environment
+ENV MIX_ENV=dev
+
+# Increase HTTP timeout for slow connections
+ENV HEX_HTTP_TIMEOUT=300
+ENV HEX_HTTP_CONCURRENCY=1
+
+# Copy mix files and install dependencies
+COPY mix.exs mix.lock ./
+
+# Try to get deps with retry mechanism
+RUN mix deps.get || \
+    (echo "First attempt failed, retrying..." && sleep 5 && mix deps.get) || \
+    (echo "Second attempt failed, cleaning cache and retrying..." && mix local.hex --force && mix deps.clean --all && mix deps.get)
+
+# Create config directory and copy config files
+RUN mkdir -p config
+COPY config/config.exs config/dev.exs
+RUN mix deps.compile
+
+# Setup assets (downloads tailwind and esbuild binaries)
+RUN mix assets.setup
+
+# Copy application code
+COPY priv priv
+COPY lib lib
+COPY assets assets
+COPY config/runtime.exs config/
+COPY rel rel
+
+# Compile the application
+RUN mix compile
+
+# Expose Phoenix port
+EXPOSE 4000
+
+# Default command - can be overridden in docker-compose.yml
+CMD ["mix", "phx.server"]

@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: you_data_base
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      MIX_ENV: dev
+      DATABASE_URL: ecto://postgres:postgres@db/you_data_base
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PHX_PORT: ${PHX_PORT:-4000}
+    ports:
+      - "4000:4000"
+    volumes:
+      # Mount source code for live reloading
+      - .:/app
+      # Mount build artifacts as volumes to persist between rebuilds
+      - build_data:/app/_build
+      - deps_data:/app/deps
+      - node_modules:/app/assets/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "mix ecto.create && mix ecto.migrate && mix phx.server"
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  build_data:
+  deps_data:
+  node_modules:
